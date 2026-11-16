@@ -77,15 +77,8 @@ dispatch item dir *flags:
 hub-close item pr *flags:
     python3 tools/hub.py close {{item}} --pr "{{pr}}" {{flags}}
 
-# Every test, as CI runs them: the spec's scenario vectors (through the rules and over HTTP),
-# the client against the real service, and the check that the specs and the vectors agree.
+# Every test, as CI runs them: the check that the specs and the vectors agree, and each
+# artifact's own tests once it has them.
 gates:
     python3 scripts/test.py
 
-# Run the service: just serve [--port 8080] [--today 2026-10-01]
-serve *flags:
-    python3 artifacts/service/serve.py {{flags}}
-
-# The command-line client: just library lend ada pp-1
-library *args:
-    python3 artifacts/cli/library.py {{args}}

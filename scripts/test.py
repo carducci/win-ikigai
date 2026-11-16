@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SUITES = ["tests", "artifacts/service/tests", "artifacts/cli/tests"]
+SUITES = ["tests"]
 
 
 def main() -> int:

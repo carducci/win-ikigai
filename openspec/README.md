@@ -13,8 +13,7 @@ openspec/
     └── archive/    finished changes, moved here intact by `openspec archive`
 ```
 
-The starter keeps requirements for its own tooling here; the library-lending sample fills
-both halves for its lending behavior. Nothing here
+Nothing here
 needs OpenSpec's own CLI: the format is Markdown with fixed heading prefixes
 (`### Requirement:`, `#### Scenario:`), and the
 [gonk Book's spec part](https://ikigai-rs.github.io/ikigai-tutorial/gonk/spec/openspec.html)

@@ -16,6 +16,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Tests (the scenario vectors, the service, the client, specs against vectors)
+      - name: Tests (specs against vectors, and each artifact's tests)
         # The same command `just gates` runs locally. Standard library only: nothing to install.
         run: python3 scripts/test.py
