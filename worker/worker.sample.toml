@@ -1,0 +1,114 @@
+# A worker's configuration: copy to .gonk/worker.toml in the worker's checkout and edit.
+# Git-ignored there, because it is this machine's. A machine that runs one loop per agent
+# has .gonk/worker-<agent>.toml instead, one per agent, written from this file (or from its
+# worker.toml) by `python3 tools/worker.py init-agents` (worker/README.md, step 8).
+# tools/worker.py reads it; how the machine reaches gonk, the ledger, and the holder name
+# are in .gonk/local.toml and .gonk/gonk.toml, written by `python3 tools/gonk.py init` (see
+# worker/README.md, "Running the worker loop"). A loop's own `holder` overrides that one.
+
+# Which items this worker takes: `next` narrowed to items carrying ALL of these labels.
+# Required, so a worker never takes work nobody meant for it. The dispatcher marks an item
+# ready for this machine by adding the label.
+labels = ["worker:my-worker"]
+# Keep holder above the first table header, beside labels.
+# holder = "my-worker-codex"   # this loop's holder name, over .gonk/local.toml's
+# The shared labels this loop also reads after its own, each in place of its worker:<name> and
+# keeping its agent:. The default, for a loop whose labels name an agent:, is ["worker:pool"], and
+# ["worker:mac", "worker:pool"] on a Mac; [] opts out (worker/README.md, "The pool").
+# pool = ["worker:pool"]
+# Items carrying ANY of these are never taken.
+# without = ["needs-person"]
+
+# Who may route work here: the principals whose DISPATCH sends an item to this worker. Required.
+# A label alone says nothing about who set it (the ledger records no setter, and anyone who can
+# write to the ledger can label), so the worker takes an item only when its newest dispatch
+# comment by one of these names this worker's labels and the item's repo:, and pins the title
+# and body it still has. The dispatcher writes it with `python3 tools/gonk.py dispatch N
+# --labels worker:<name>,agent:<kind>`. Each entry is a principal gonk's doors name, never free
+# text (worker/README.md, "Who may route work here"): a person's passkey,
+#   "urn:iki:gonk:passkey:<credential id>"       (gonk's item page shows it on their comments)
+# or a dispatching machine's client certificate,
+#   "urn:iki:host:gonk:client:<sha256 fingerprint>"
+# The placeholder below is refused until you replace it.
+routers = ["urn:iki:gonk:passkey:<the dispatcher's credential id>"]
+
+# Where worktrees go: <work_root>/<repo>/item-<N>. Must be under this account's own home.
+work_root = "~/work"
+
+lease = "30m"          # the claim's lease
+# renew_every = "10m"  # the heartbeat; default a third of the lease
+budget = "45m"         # wall-clock per item; the agent is stopped when it runs out
+ci_wait = "10m"        # after the agent exits, how long to wait for its PR's CI to finish
+poll = "60s"           # between polls of `next` when nothing is ready
+# keep = false         # true keeps every worktree after its hand-back
+# gh = "gh"            # the GitHub CLI, if it is not `gh` on PATH
+# stop_file = ".gonk/state/worker/stop"   # create it to stop the loop between items
+# (The default. A loop of its own, .gonk/worker-<agent>.toml, stops at
+# .gonk/state/worker/<agent>/stop, and .gonk/state/worker/stop stops every loop.)
+
+[agent]
+# One of the presets (each the agent's documented non-interactive form):
+#   claude          claude -p {prompt}
+#   codex           codex exec {prompt}
+#   hermes          hermes -z {prompt}
+#   hermes-profile  hermes --profile {profile} -z {prompt}     (set profile = "<name>")
+# or a command of your own, as a list; placeholders: {prompt} {prompt_file} {workdir}
+# {branch} {item} {repo} {report_file} {profile}. An unattended agent also needs its own
+# permission settings; the worker does not choose them for you.
+# A command that runs `claude` or `codex` by that name is given its JSON output
+# (--output-format json, --json), read for the session summary the hand-back records
+# (worker/README.md, "The session summary"). One of your own that runs either under another
+# name says which, and asks for that output itself:
+# harness = "claude"
+preset = "claude"
+# Unattended, an agent commits, pushes and opens a pull request, so it runs with its own
+# checks opened and the agent's Unix account as the boundary (worker/README.md, step 8).
+# Claude Code (as the first claude run used; authenticate with `claude auth login` as this
+# account, or CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` in the worker's environment,
+# never in this file):
+# command = ["claude", "-p", "--permission-mode", "bypassPermissions", "{prompt}"]
+# Codex:
+# command = ["codex", "exec", "--full-auto", "{prompt}"]
+# profile = "coder"
+
+# Review jobs (worker/README.md, "Review jobs") need no setting here, and no more of the ledger
+# than change jobs: the worker hands the findings back on a comment, and the dispatcher files them
+# with `gonk.py findings N`. A grant enrolled with `--worker` is enough. The dispatcher lists this
+# worker's client in its own .gonk/dispatcher.toml, not here.
+
+# Usage against the plan's weekly limit, read between items at most once an hour and posted as a
+# comment on a standing status item (tools/worker_usage.py). No agent CLI documents a
+# non-interactive usage output, so there is no default command: without one nothing is read.
+# The command prints one JSON object: {"plan": "…", "used": N, "limit": N, "percent": N,
+# "resets_at": "2026-10-20T09:00:00Z"} (percent, or used and limit). Anything else is
+# "unknown", which never stops the loop. Above `threshold` the loop takes no new item.
+# [usage]
+# command = ["/home/agent/bin/claude-usage"]
+# agent = "claude"        # as the report names it
+# threshold = 85          # percent
+# every = "1h"
+# status_item = 1234      # the item the report is commented on; omit to only log it
+#                         # (the loop also posts its `Worker:` line there: labels, repos)
+
+# Free disk and kept work (the defaults). Under floor_gb free on the volume holding work_root,
+# the loop takes no new item and says why in its log and in a `Disk:` line on its status item,
+# then takes items again by itself once space returns (0 turns the floor off). Worktrees kept
+# after a run without evidence, and items' logs, are removed once older than prune_after, at the
+# loop's start and once a day; one whose branch has an open pull request is kept.
+# [disk]
+# floor_gb = 30
+# every = "6h"            # how often the Disk: line is posted between crossings of the floor
+# prune_after = "7d"      # "0s" keeps every worktree and log; under the floor a build still goes
+
+# The worker's own fence: derive repo:<name> as this GitHub organization's repository.
+# Edit this organization before running. New repositories need no stanza and no restart.
+# The token must have push permission; the worker checks GitHub before taking derived work.
+[repos_from]
+github = "ikigai-rs"
+# except = ["sensitive-repo"]
+
+# Explicit overrides still win, including over except (another org, mirror or base branch).
+# [repos.library]
+# remote = "https://github.com/acme/library.git"
+# github = "acme/library"
+# base = "main"
