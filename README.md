@@ -32,7 +32,7 @@ tests/                   the check that the specs and the vectors name the same 
 tools/gonk.py            init, seed, file, next, claim, release, report, close, status
 ```
 
-Its work lives on the `windows` gonk ledger. Every test, as CI runs them:
+Its work lives on the `carducci` gonk ledger. Every test, as CI runs them:
 `python3 scripts/test.py`.
 
 ## Licence
