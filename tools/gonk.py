@@ -903,6 +903,10 @@ def cmd_seed(args, cfg: Config, make_ikigai) -> int:
     tasks.md after seeding leaves the old links in place; `next` names any cycle that makes,
     with the `delete` that removes a link."""
     changes = open_changes(cfg.repo, cfg.layout)
+    if args.change:
+        if unknown := sorted(set(args.change) - {c.id for c in changes}):
+            raise SystemExit(f"seed: no change in flight named {', '.join(unknown)}")
+        changes = [c for c in changes if c.id in args.change]
     todo = [(c, t) for c in changes for t in c.tasks if not t.done]
     checked = sum(1 for c in changes for t in c.tasks if t.done)
     if not args.dry_run:
@@ -2797,6 +2801,7 @@ def parser() -> argparse.ArgumentParser:
     s.add_argument(
         "--dry-run", action="store_true", help="list what would be filed; ask gonk nothing"
     )
+    s.add_argument("--change", action="append", metavar="ID", help="seed only this change (repeatable)")
     s.set_defaults(run=cmd_seed)
 
     s = sub.add_parser("next", help="the ready set, ranked")
